@@ -12,6 +12,36 @@ document.addEventListener('DOMContentLoaded', () => {
     let timerId = null;
     let startTime = null;
 
+    // Load parameters from URL
+    const loadParamsFromURL = () => {
+        const queryParams = new URLSearchParams(window.location.search);
+        urlInput.value = queryParams.get('url') || '';
+        intervalInput.value = queryParams.get('interval') || '';
+        useCorsProxyCheckbox.checked = queryParams.get('useCorsProxy') === 'true';
+        corsProxyUrlInput.value = queryParams.get('corsProxyUrl') || 'https://cors-anywhere.herokuapp.com/';
+        repeatCheckbox.checked = queryParams.get('repeat') === 'true';
+    };
+
+    // Initial load
+    loadParamsFromURL();
+    
+    // Update URL with form parameters
+    const updateURLParams = () => {
+        const queryParams = new URLSearchParams({
+            url: urlInput.value,
+            interval: intervalInput.value,
+            useCorsProxy: useCorsProxyCheckbox.checked,
+            corsProxyUrl: corsProxyUrlInput.value,
+            repeat: repeatCheckbox.checked
+        });
+        window.history.pushState({}, '', `${window.location.pathname}?${queryParams.toString()}`);
+    };
+
+    // Attach event listeners to form elements
+    document.querySelectorAll('#schedulerForm input').forEach(input => {
+        input.addEventListener('change', updateURLParams);
+    });
+
     const fetchUrl = async (url, useCorsProxy) => {
         const finalUrl = useCorsProxy ? `${corsProxyUrlInput.value}${url}` : url;
         try {
