@@ -3,20 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>URL Request Scheduler</title>
+    <title>Ping Scheduler</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
-        <h1>URL Request Scheduler</h1>
+        <h1>Ping Scheduler</h1>
         <form id="schedulerForm">
-            <label for="url">URL:</label>
-            <input type="text" id="url" name="url" required>
-            <label for="interval">Interval (in seconds):</label>
-            <input type="number" id="interval" name="interval" min="1" required>
-            <button type="submit">Set Schedule</button>
+            <div class="form-group">
+                <label for="url">URL:</label>
+                <input type="text" id="url" name="url" required>
+            </div>
+            <div class="form-group">
+                <label for="interval">Interval (seconds):</label>
+                <input type="number" id="interval" name="interval" min="1" required>
+            </div>
+            <div class="form-group">
+                <input type="checkbox" id="repeat" name="repeat">
+                <label for="repeat">Repeat</label>
+            </div>
+            <button type="button" id="startButton">Start</button>
+            <button type="button" id="stopButton">Stop</button>
         </form>
-        <div id="responseDisplay" class="response-display"></div>
+        <div id="progressContainer">
+            <div id="progressBar"></div>
+        </div>
+        <div id="responseContainer"></div>
     </div>
     <script src="script.js"></script>
 </body>
