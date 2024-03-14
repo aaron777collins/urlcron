@@ -10,59 +10,53 @@ document.addEventListener('DOMContentLoaded', () => {
     const responseContainer = document.getElementById('responseContainer');
 
     let timerId = null;
-    let progressInterval = null;
+    let startTime = null;
 
     const fetchUrl = async (url, useCorsProxy) => {
-        const proxyUrl = useCorsProxy ? `${corsProxyUrlInput.value}` : '';
+        const finalUrl = useCorsProxy ? `${corsProxyUrlInput.value}${url}` : url;
         try {
-            const response = await fetch(`${proxyUrl}${url}`, {
+            const response = await fetch(finalUrl, {
                 method: 'GET',
-                mode: 'cors', // Needed for CORS request to work with proxy
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
+                mode: useCorsProxy ? 'cors' : 'no-cors', // 'no-cors' for direct, 'cors' for proxy
+                headers: useCorsProxy ? { 'X-Requested-With': 'XMLHttpRequest' } : {}
             });
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            return await response.text();
+            if (!response.ok && useCorsProxy) throw new Error(`HTTP error! status: ${response.status}`);
+            const text = await response.text();
+            return useCorsProxy ? text : `Response received. Content cannot be shown due to 'no-cors' mode.`;
         } catch (error) {
             return `Fetch error: ${error.message}`;
         }
     };
 
     const updateProgressBar = () => {
-        const elapsedTime = Date.now() - timerId;
+        const elapsedTime = Date.now() - startTime;
         const progress = (elapsedTime / (intervalInput.value * 1000)) * 100;
         progressBar.style.width = `${Math.min(progress, 100)}%`;
-        if (progress >= 100 && progressInterval) {
-            clearInterval(progressInterval);
-            progressBar.style.width = '0%'; // Reset for next interval
+        if (progress < 100) {
+            requestAnimationFrame(updateProgressBar);
         }
     };
 
-    const startProgress = () => {
-        if (progressInterval) clearInterval(progressInterval);
-        timerId = Date.now();
-        progressInterval = setInterval(updateProgressBar, 100);
-    };
-
     startButton.onclick = async () => {
-        clearTimeout(timerId); // Clear previous timer if exists
-        clearInterval(progressInterval); // Clear previous progress interval if exists
+        if (timerId) return; // Prevent multiple timers
 
         const fetchAndSchedule = async () => {
             const url = urlInput.value;
             const useCorsProxy = useCorsProxyCheckbox.checked;
             responseContainer.textContent = 'Fetching...';
-            startProgress();
+            progressBar.style.width = '0%';
+            startTime = Date.now();
+            requestAnimationFrame(updateProgressBar);
 
-            const responseText = await fetchUrl(url, useCorsProxy);
-            responseContainer.textContent = responseText;
+            try {
+                const responseText = await fetchUrl(url, useCorsProxy);
+                responseContainer.textContent = responseText;
 
-            if (repeatCheckbox.checked) {
-                timerId = setTimeout(fetchAndSchedule, intervalInput.value * 1000);
-            } else {
-                clearInterval(progressInterval);
-                progressBar.style.width = '100%';
+                if (repeatCheckbox.checked) {
+                    timerId = setTimeout(fetchAndSchedule, intervalInput.value * 1000);
+                }
+            } catch (error) {
+                responseContainer.textContent = `Error: ${error}`;
             }
         };
 
@@ -71,7 +65,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     stopButton.onclick = () => {
         clearTimeout(timerId);
-        clearInterval(progressInterval);
         timerId = null;
         progressBar.style.width = '0%';
         responseContainer.textContent = 'Stopped.';
