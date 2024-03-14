@@ -47,14 +47,13 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(finalUrl, {
                 method: 'GET',
-                mode: useCorsProxy ? 'cors' : 'no-cors', // 'no-cors' for direct, 'cors' for proxy
-                headers: useCorsProxy ? { 'X-Requested-With': 'XMLHttpRequest' } : {}
+                mode: 'cors', // Always set to 'cors' to attempt to fetch the response
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
             });
-            if (!response.ok && useCorsProxy) throw new Error(`HTTP error! status: ${response.status}`);
-            const text = await response.text();
-            return useCorsProxy ? text : `Response received. Content cannot be shown due to 'no-cors' mode.`;
+            const text = response.ok ? await response.text() : `Fetch error: ${response.statusText} (status: ${response.status})`;
+            return text;
         } catch (error) {
-            return `Fetch error: ${error.message}`;
+            return `Fetch attempt error: ${error.message}`;
         }
     };
 
@@ -73,20 +72,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const fetchAndSchedule = async () => {
             const url = urlInput.value;
             const useCorsProxy = useCorsProxyCheckbox.checked;
-            responseContainer.textContent = 'Fetching...';
+            responseContainer.textContent = 'Attempting fetch...';
             progressBar.style.width = '0%';
             startTime = Date.now();
             requestAnimationFrame(updateProgressBar);
 
-            try {
-                const responseText = await fetchUrl(url, useCorsProxy);
-                responseContainer.textContent = responseText;
+            const responseText = await fetchUrl(url, useCorsProxy);
+            responseContainer.textContent = responseText;
 
-                if (repeatCheckbox.checked) {
-                    timerId = setTimeout(fetchAndSchedule, intervalInput.value * 1000);
-                }
-            } catch (error) {
-                responseContainer.textContent = `Error: ${error}`;
+            if (repeatCheckbox.checked) {
+                timerId = setTimeout(fetchAndSchedule, intervalInput.value * 1000);
             }
         };
 
