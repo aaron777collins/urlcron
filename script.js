@@ -16,15 +16,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadParamsFromURL = () => {
         const queryParams = new URLSearchParams(window.location.search);
         urlInput.value = queryParams.get('url') || '';
-        intervalInput.value = queryParams.get('interval') || '';
+        intervalInput.value = queryParams.get('interval') || '5'; // Default to 5 seconds if not specified
         useCorsProxyCheckbox.checked = queryParams.get('useCorsProxy') === 'true';
         corsProxyUrlInput.value = queryParams.get('corsProxyUrl') || 'https://cors-anywhere.herokuapp.com/';
         repeatCheckbox.checked = queryParams.get('repeat') === 'true';
     };
 
-    // Initial load
-    loadParamsFromURL();
-    
     // Update URL with form parameters
     const updateURLParams = () => {
         const queryParams = new URLSearchParams({
@@ -34,12 +31,12 @@ document.addEventListener('DOMContentLoaded', () => {
             corsProxyUrl: corsProxyUrlInput.value,
             repeat: repeatCheckbox.checked
         });
-        window.history.pushState({}, '', `${window.location.pathname}?${queryParams.toString()}`);
+        window.history.pushState({}, '', `${window.location.pathname}?${queryParams}`);
     };
 
-    // Attach event listeners to form elements
-    document.querySelectorAll('#schedulerForm input').forEach(input => {
-        input.addEventListener('change', updateURLParams);
+    // Attach event listeners to form elements for real-time URL parameter updates
+    document.querySelectorAll('#schedulerForm input, #schedulerForm select').forEach(element => {
+        element.addEventListener('change', updateURLParams);
     });
 
     const fetchUrl = async (url, useCorsProxy) => {
@@ -47,10 +44,11 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(finalUrl, {
                 method: 'GET',
-                mode: 'cors', // Always set to 'cors' to attempt to fetch the response
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                mode: useCorsProxy ? 'cors' : 'no-cors',
+                headers: useCorsProxy ? { 'X-Requested-With': 'XMLHttpRequest' } : {}
             });
-            const text = response.ok ? await response.text() : `Fetch error: ${response.statusText} (status: ${response.status})`;
+            if (!response.ok && useCorsProxy) throw new Error(`Fetch error: ${response.statusText} (status: ${response.status})`);
+            const text = useCorsProxy ? await response.text() : 'Response received. Content viewing is restricted in "no-cors" mode.';
             return text;
         } catch (error) {
             return `Fetch attempt error: ${error.message}`;
@@ -94,4 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
         progressBar.style.width = '0%';
         responseContainer.textContent = 'Stopped.';
     };
+
+    // Call loadParamsFromURL to initialize form values from URL parameters
+    loadParamsFromURL();
 });
